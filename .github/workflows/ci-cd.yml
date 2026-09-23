@@ -1,0 +1,64 @@
+name: Cloud Native CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "app/**"
+      - "kubernetes/**"
+      - ".github/workflows/ci-cd.yml"
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  RESOURCE_GROUP: rg-cloud-native-platform-tf
+  AKS_NAME: aks-cloud-native-tf
+  ACR_NAME: zainabcloudnativetf2026
+  IMAGE_NAME: cloud-app
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Azure Login with OIDC
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push image to ACR
+        run: |
+          az acr build \
+            --registry $ACR_NAME \
+            --image $IMAGE_NAME:${{ github.sha }} \
+            ./app
+
+      - name: Get AKS credentials
+        run: |
+          az aks get-credentials \
+            --resource-group $RESOURCE_GROUP \
+            --name $AKS_NAME \
+            --overwrite-existing
+
+      - name: Deploy new image to AKS
+        run: |
+          kubectl set image deployment/cloud-app \
+            cloud-app=$ACR_NAME.azurecr.io/$IMAGE_NAME:${{ github.sha }}
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/cloud-app \
+            --timeout=180s
+
+      - name: Show deployment status
+        run: |
+          kubectl get pods
+          kubectl get service
