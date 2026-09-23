@@ -9,6 +9,12 @@ resource "azurerm_kubernetes_cluster" "main" {
     node_count     = 1
     vm_size        = "Standard_B2s"
     vnet_subnet_id = azurerm_subnet.aks.id
+
+    upgrade_settings {
+      max_surge                     = "10%"
+      drain_timeout_in_minutes      = 0
+      node_soak_duration_in_minutes = 0
+    }
   }
 
   identity {
@@ -27,6 +33,7 @@ resource "azurerm_kubernetes_cluster" "main" {
     managed_by  = "terraform"
   }
 }
+
 resource "azurerm_role_assignment" "aks_acr_pull" {
   scope                = azurerm_container_registry.main.id
   role_definition_name = "AcrPull"
