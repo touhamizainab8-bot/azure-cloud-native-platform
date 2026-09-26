@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: cloud-app
-          image: zainabcloudnative2026.azurecr.io/cloud-app:v1
+          image: zainabcloudnativetf2026.azurecr.io/cloud-app:v1
           ports:
             - containerPort: 5000
           resources:
